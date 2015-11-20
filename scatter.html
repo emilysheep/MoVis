@@ -1,9 +1,6 @@
 <html>
 <meta charset="utf-8">
 
-<!-- Example based on http://bl.ocks.org/mbostock/3887118 -->
-<!-- Tooltip example from http://www.d3noob.org/2013/01/adding-tooltips-to-d3js-graph.html -->
-
 <style>
 body {
   font: 11px sans-serif;
@@ -28,7 +25,6 @@ body {
 }
 </style>
 <body>
-<label><input type="checkbox"> Runtime filter</label>
 <script src="http://d3js.org/d3.v3.min.js"></script>
 
 <script>
@@ -114,6 +110,7 @@ d3.csv("projectData.csv", function(error, data) {
   data.forEach(function(d) {
     d.rate = +d.rate;
     d.year = +d.year;
+	d.date = parseDate(d.ReleaseDate);
 	d.boxoffice = +d.boxoffice;
 	d.runtime = +d.runtime;
 //    console.log(d);
@@ -151,7 +148,7 @@ d3.csv("projectData.csv", function(error, data) {
   svg.selectAll(".dot")
       .data(data)
     .enter().append("circle")
-	//.filter(function(d) { return d.runtime < 400 })
+	.filter(function(d) { return d.runtime < 100 })
      // .attr("class", "dot")
       .attr("r", function(d){
 		  if(d.boxoffice>50000000){
@@ -181,6 +178,18 @@ d3.csv("projectData.csv", function(error, data) {
                .duration(500)
                .style("opacity", 0);
       })
+	  .on("click", function(d){
+						
+			//window.open ('SingleMoviePage.html','newwindow','height=600,width=800,top=300, left=400, toolbar=no, menubar=no, scrollbars=yes, resizable=yes, location=no, status=no') 
+
+			var movie_object = new Object();
+			movie_object.name = d.name;
+			movie_object.date = d.date;
+			movie_object.boxoffice = d.boxoffice;
+			movie_object.runtime = d.runtime;
+			movie_object.imdb = d.imdb;
+			window.showModalDialog("SingleMoviePage.html", movie_object, "dialogHeight:500px; dialogLeft:500px;"); 
+	})
       .call(drag);
 
   // draw legend
@@ -188,23 +197,37 @@ d3.csv("projectData.csv", function(error, data) {
       .data(color.domain())
     .enter().append("g")
       .attr("class", "legend")
-      .attr("transform", function(d, i) { return "translate(0," + i * 20 + ")"; });
+      .attr("transform", function(d, i) { return "translate(0," + i * 20 + ")"; })
+	  .on("click", function(){
+			var genrename = d3.select(this).data();
+			alert(genrename);
+			// Determine if current line is visible
+		var active   = d3.select("#"+genrename).active ? false : true,
+		  newOpacity = active ? 0 : 1;
+		// Hide or show the elements
+		d3.select("#"+genrename).style("opacity", newOpacity);
+		// Update whether or not the elements are active
+		d3.select("#"+genrename).active = active;
+	  });
+	  
+	  
 
   // draw legend colored rectangles
   legend.append("rect")
       .attr("x", width - 18)
       .attr("width", 18)
       .attr("height", 18)
-      .style("fill", color)
-	  .on("click", function(){});
+      .style("fill", color);
 
       // draw legend text
   legend.append("text")
       .attr("x", width - 24)
       .attr("y", 9)
       .attr("dy", ".35em")
+	  .attr("id", function(d){ return d;})
       .style("text-anchor", "end")
       .text(function(d) { return d;})
+	  
 });
 
 </script>
