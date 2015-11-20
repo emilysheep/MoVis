@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Movie Info</title>
+
+</head>
+<body>
+<script type="text/javascript">
+var movie = window.dialogArguments;
+document.write("Name: "+ movie.name);
+document.write("<br>");
+document.write("Release Date: " + movie.date);
+document.write("<br>");
+document.write("Boxoffice: $" + movie.boxoffice);
+document.write("<br>");
+document.write("Runtime: " + movie.runtime);
+document.write("<br>");
+var a = document.createElement('a');
+var linkText = document.createTextNode("link to iMDB");
+a.appendChild(linkText);
+a.title = "link to iMDB";
+a.href = "http://www.imdb.com/title/" + movie.imdb;
+document.body.appendChild(a);
+
+</script>
+
+</body>
+</html>
