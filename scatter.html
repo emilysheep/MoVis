@@ -41,8 +41,9 @@ var margin = {top: 20, right: 20, bottom: 30, left: 40},
  */ 
 
 // setup x 
-var xValue = function(d) { return d.year;}, // data -> value
-    xScale = d3.scale.linear().range([0, width-100]), // value -> display
+var xValue = function(d) { return d.ReleaseDate;}, // data -> value
+    //xScale = d3.scale.linear().range([0, width-100]), // value -> display
+    xScale = d3.time.scale().range([0,width-100]);
     xMap = function(d) { return xScale(xValue(d));}, // data -> display
     xAxis = d3.svg.axis().scale(xScale).orient("bottom").ticks(10);
 
@@ -53,10 +54,12 @@ var yValue = function(d) { return d.rate;}, // data -> value
     yAxis = d3.svg.axis().scale(yScale).orient("left");
 
     // setup fill color
-var cValue = function(d) { return d.gener1;},
-    color = d3.scale.category20();
+var cValue = function(d) { return d.gener;},
+    color = d3.scale.category10();
 
     var zoom = d3.behavior.zoom()
+    //.x(xScale)
+    //.y(yScale)
     .scaleExtent([1,20])
     .on("zoom",zoomed);
 
@@ -67,6 +70,8 @@ var cValue = function(d) { return d.gener1;},
     .on("dragend", dragended);
 
     function zoomed(){
+      //svg.select(".x.axis").call(xAxis);
+      //svg.select(".y.axis").call(yAxis);
     svg.attr("transform", "translate(" + d3.event.translate + ")scale(" + d3.event.scale + ")");
     }
 
@@ -95,7 +100,7 @@ var svg = d3.select("body").append("svg")
     .attr("width", width)
     .attr("height", height)
     .style("fill", "none")
-    .style("pointer-events", "all");
+    //.style("pointer-events", "all");
 
 // add the tooltip area to the webpage
 var tooltip = d3.select("body").append("div")
@@ -104,21 +109,24 @@ var tooltip = d3.select("body").append("div")
 
 
 // load data
-d3.csv("projectData.csv", function(error, data) {
+d3.csv("projectData-0.csv", function(error, data) {
 
   // change string (from CSV) into number format
   data.forEach(function(d) {
     d.rate = +d.rate;
     d.year = +d.year;
-	d.date = parseDate(d.ReleaseDate);
+    //d.date = +d.ReleaseDate;
+	d.ReleaseDate = parseDate(d.ReleaseDate);
 	d.boxoffice = +d.boxoffice;
 	d.runtime = +d.runtime;
 //    console.log(d);
   });
 
   // don't want dots overlapping axis, so add in buffer to data domain
-  xScale.domain([d3.min(data, xValue)-1, d3.max(data, xValue)+1]);
-  yScale.domain([d3.min(data, yValue)-1, d3.max(data, yValue)+1]);
+  xScale.domain(d3.extent(data, function(d){return d.ReleaseDate;}));
+  yScale.domain([0,d3.max(data,function(d){return d.rate})]);
+  //xScale.domain([d3.min(data, xValue)-1, d3.max(data, xValue)+1]);
+  //yScale.domain([d3.min(data, yValue)-1, d3.max(data, yValue)+1]);
 
   // x-axis
   svg.append("g")
@@ -148,7 +156,6 @@ d3.csv("projectData.csv", function(error, data) {
   svg.selectAll(".dot")
       .data(data)
     .enter().append("circle")
-	.filter(function(d) { return d.runtime < 100 })
      // .attr("class", "dot")
       .attr("r", function(d){
 		  if(d.boxoffice>50000000){
@@ -184,7 +191,7 @@ d3.csv("projectData.csv", function(error, data) {
 
 			var movie_object = new Object();
 			movie_object.name = d.name;
-			movie_object.date = d.date;
+			movie_object.date = d.ReleaseDate;
 			movie_object.boxoffice = d.boxoffice;
 			movie_object.runtime = d.runtime;
 			movie_object.imdb = d.imdb;
