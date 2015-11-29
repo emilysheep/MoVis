@@ -3,6 +3,7 @@
 <head>
 <title>MoVis</title>
 <link rel="stylesheet" href="d3.slider.css" /> 
+<link rel="stylesheet" href="https://cdn.datatables.net/1.10.10/css/jquery.dataTables.min.css" />
 <style>
 body {
   font-family: Verdana,Arial,sans-serif;
@@ -45,9 +46,12 @@ body {
 <h2>Runtime： <span id="slidertextmin">0</span>, <span id="slidertextmax">200</span></h2>
  
 <div id="slider"></div>
+<table id="movietable" class="display" width="100%"></table>
  </div>
 <script src="http://d3js.org/d3.v3.min.js"></script>
 <script src="d3.slider.js"></script>
+<script src="//code.jquery.com/jquery-1.11.3.min.js"></script>
+<script src="https://cdn.datatables.net/1.10.10/js/jquery.dataTables.min.js"></script>
 
 <script>
 var margin = {top: 20, right: 20, bottom: 30, left: 500},
@@ -76,7 +80,7 @@ var yValue = function(d) { return d.rate;}, // data -> value
     yAxis = d3.svg.axis().scale(yScale).orient("left");
 
     // setup fill color
-var cValue = function(d) { return d.gener;},
+var cValue = function(d) { return d.genre;},
     color = d3.scale.category10();
 
     var zoom = d3.behavior.zoom()
@@ -231,14 +235,13 @@ d3.csv("projectData-0.csv", function(error, data) {
       .attr("transform", function(d, i) { return "translate(0," + i * 20 + ")"; })
 	  .on("click", function(){
 			var genrename = d3.select(this).data();
-			alert(genrename);
-			// Determine if current line is visible
-		var active   = d3.select("#"+genrename).active ? false : true,
-		  newOpacity = active ? 0 : 1;
-		// Hide or show the elements
-		d3.select("#"+genrename).style("opacity", newOpacity);
-		// Update whether or not the elements are active
-		d3.select("#"+genrename).active = active;
+			dot
+			.filter(function(d) { return d.genre == genrename; })
+			.attr("display", "inline");
+			dot
+			.filter(function(d) { return d.genre != genrename; })
+			.attr("display", "none");
+		
 	  });
 	  
 	  
@@ -272,7 +275,25 @@ d3.csv("projectData-0.csv", function(error, data) {
     .attr("display", "none");
     }));
 
-	  
+	
+	//show the selected movies in table
+	  var dataSet = [];
+data.forEach(function(d) {
+dataSet.push( [d.name,  d.rate, d.boxoffice, d.runtime, d.ReleaseDate, d.genre]);
+  });
+$(document).ready(function() {
+    $('#movietable').DataTable( {
+        data: dataSet,
+        columns: [
+            { title: "Name" },
+            { title: "Rate" },
+			{ title: "Boxoffice" },
+            { title: "Runtime" },
+            { title: "Release Date" },
+            { title: "Genre" }
+        ]
+    } );
+});
 });
 
 </script>
