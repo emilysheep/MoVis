@@ -27,8 +27,8 @@ return function module() {
 
   // Public variables width default settings
   var min = 0,
-      max = 100,
-      step = 0.01,
+      max = 200,
+      step = 1,
       animate = true,
       orientation = "horizontal",
       axis = false,

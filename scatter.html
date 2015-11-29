@@ -175,10 +175,11 @@ d3.csv("projectData-0.csv", function(error, data) {
       .text("rate");
 
   // draw dots
-  svg.selectAll(".dot")
+ var dot = svg.selectAll(".dot")
       .data(data)
     .enter().append("circle")
-     // .attr("class", "dot")
+	
+      //.attr("class", "dot")
       .attr("r", function(d){
 		  if(d.boxoffice>50000000){
 				return 9;
@@ -191,7 +192,7 @@ d3.csv("projectData-0.csv", function(error, data) {
 		  }
 	  })
       .attr("cx", xMap)
-      .attr("cy", yMap)
+      .attr("cy", yMap)	  
       .style("fill", function(d) { return color(cValue(d));}) 
 	  
       .on("mouseover", function(d) {
@@ -258,9 +259,17 @@ d3.csv("projectData-0.csv", function(error, data) {
       .style("text-anchor", "end")
       .text(function(d) { return d;})
 	  
-	   d3.select('#slider').call(d3.slider().axis(true).value( [ 10, 25 ] ).on("slide", function(evt, value) {
+	   d3.select('#slider').call(d3.slider().axis(true).value( [ 0, 200 ] ).on("slide", function(evt, value) {
       d3.select('#slidertextmin').text(value[ 0 ]);
       d3.select('#slidertextmax').text(value[ 1 ]);
+	  var min = +value[0];
+	  var max = +value[1];
+  dot
+    .filter(function(d) { return d.runtime > min && d.runtime < max; })
+    .attr("display", "inline");
+  dot
+    .filter(function(d) { return d.runtime < min || d.runtime > max; })
+    .attr("display", "none");
     }));
 
 	  
