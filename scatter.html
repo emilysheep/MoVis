@@ -1,9 +1,11 @@
 <html>
 <meta charset="utf-8">
-
+<head>
+<title>MoVis</title>
+<link rel="stylesheet" href="d3.slider.css" /> 
 <style>
 body {
-  font: 11px sans-serif;
+  font-family: Verdana,Arial,sans-serif;
 }
 
 .axis path,
@@ -23,13 +25,33 @@ body {
   height: 28px;
   pointer-events: none;
 }
+	 h2 {
+      font-size: 1.2em;
+      margin: 60px 0 5px 0;
+    }
+    .wrapper {
+      width: 800px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+    .wrapper > div {
+      margin: 35px 0;
+    }
+   
 </style>
+</head>
 <body>
+<div class="wrapper">
+<h2>Runtime： <span id="slidertextmin">0</span>, <span id="slidertextmax">200</span></h2>
+ 
+<div id="slider"></div>
+ </div>
 <script src="http://d3js.org/d3.v3.min.js"></script>
+<script src="d3.slider.js"></script>
 
 <script>
-var margin = {top: 20, right: 20, bottom: 30, left: 40},
-    width = 1200 - margin.left - margin.right,
+var margin = {top: 20, right: 20, bottom: 30, left: 500},
+    width = 1600 - margin.left - margin.right,
     height = 500 - margin.top - margin.bottom;
 //parse the date/time
 	var parseDate = d3.time.format("%d-%b-%y").parse;
@@ -153,10 +175,11 @@ d3.csv("projectData-0.csv", function(error, data) {
       .text("rate");
 
   // draw dots
-  svg.selectAll(".dot")
+ var dot = svg.selectAll(".dot")
       .data(data)
     .enter().append("circle")
-     // .attr("class", "dot")
+	
+      //.attr("class", "dot")
       .attr("r", function(d){
 		  if(d.boxoffice>50000000){
 				return 9;
@@ -169,8 +192,9 @@ d3.csv("projectData-0.csv", function(error, data) {
 		  }
 	  })
       .attr("cx", xMap)
-      .attr("cy", yMap)
+      .attr("cy", yMap)	  
       .style("fill", function(d) { return color(cValue(d));}) 
+	  
       .on("mouseover", function(d) {
           tooltip.transition()
                .duration(200)
@@ -234,6 +258,20 @@ d3.csv("projectData-0.csv", function(error, data) {
 	  .attr("id", function(d){ return d;})
       .style("text-anchor", "end")
       .text(function(d) { return d;})
+	  
+	   d3.select('#slider').call(d3.slider().axis(true).value( [ 0, 200 ] ).on("slide", function(evt, value) {
+      d3.select('#slidertextmin').text(value[ 0 ]);
+      d3.select('#slidertextmax').text(value[ 1 ]);
+	  var min = +value[0];
+	  var max = +value[1];
+  dot
+    .filter(function(d) { return d.runtime > min && d.runtime < max; })
+    .attr("display", "inline");
+  dot
+    .filter(function(d) { return d.runtime < min || d.runtime > max; })
+    .attr("display", "none");
+    }));
+
 	  
 });
 
