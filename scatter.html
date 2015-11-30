@@ -139,18 +139,14 @@ var tooltip = d3.select("body").append("div")
 
 	$.fn.dataTable.ext.search.push(
 		function( settings, data, dataIndex ) {
-			var min = runtime_min;//parseInt( $('#min').val(), 10 );
-			var max = runtime_max;//parseInt( $('#max').val(), 10 );
-		//	var min = parseInt( $('#min').val(), 10 );
-		//	var max = parseInt( $('#max').val(), 10 );
-			//var min = document.getElementById('#slidertextmin').value * 1;
-			//var max = document.getElementById('#slidertextmax').value * 1;
-			var age = parseFloat( data[3] ) || 0; // use data for the age column
-	 
+			var min = runtime_min;
+			var max = runtime_max;
+			var runtime = parseFloat( data[3] ) || 0; 
+			
 			if ( ( isNaN( min ) && isNaN( max ) ) ||
-				 ( isNaN( min ) && age <= max ) ||
-				 ( min <= age   && isNaN( max ) ) ||
-				 ( min <= age   && age <= max ) )
+				 ( isNaN( min ) && runtime <= max ) ||
+				 ( min <= runtime   && isNaN( max ) ) ||
+				 ( min <= runtime   && runtime <= max ) )
 			{
 				return true;
 			}
