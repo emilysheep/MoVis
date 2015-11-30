@@ -42,23 +42,27 @@ body {
 </style>
 </head>
 <body>
+<div id="scatterplot"></div>
 <div class="wrapper">
-<h2>Runtime： <span id="slidertextmin">0</span>, <span id="slidertextmax">200</span></h2>
- 
+<h2>Runtime： <span id="slidertextmin">0</span> to <span id="slidertextmax">250</span> minutes </h2> 
 <div id="slider"></div>
-<table id="movietable" class="display" width="100%"></table>
  </div>
+ <table id="movietable" class="display" width="100%"></table>
 <script src="http://d3js.org/d3.v3.min.js"></script>
 <script src="d3.slider.js"></script>
 <script src="//code.jquery.com/jquery-1.11.3.min.js"></script>
 <script src="https://cdn.datatables.net/1.10.10/js/jquery.dataTables.min.js"></script>
 
 <script>
-var margin = {top: 20, right: 20, bottom: 30, left: 500},
-    width = 1600 - margin.left - margin.right,
+var margin = {top: 20, right: 20, bottom: 30, left: 50},
+    width = 1200 - margin.left - margin.right,
     height = 500 - margin.top - margin.bottom;
 //parse the date/time
 	var parseDate = d3.time.format("%d-%b-%y").parse;
+	
+	//range of runtime filter 
+	var runtime_min = 0;
+	var runtime_max = 250;
 /* 
  * value accessor - returns the value to encode for a given data object.
  * scale - maps value to a visual display encoding, such as a pixel position.
@@ -115,7 +119,7 @@ var cValue = function(d) { return d.genre;},
     }
 
 // add the graph canvas to the body of the webpage
-var svg = d3.select("body").append("svg")
+var svg = d3.select("#scatterplot").append("svg")
     .attr("width", width + margin.left + margin.right)
     .attr("height", height + margin.top + margin.bottom)
     .append("g")
@@ -133,6 +137,26 @@ var tooltip = d3.select("body").append("div")
     .attr("class", "tooltip")
     .style("opacity", 0);
 
+	$.fn.dataTable.ext.search.push(
+		function( settings, data, dataIndex ) {
+			var min = runtime_min;//parseInt( $('#min').val(), 10 );
+			var max = runtime_max;//parseInt( $('#max').val(), 10 );
+		//	var min = parseInt( $('#min').val(), 10 );
+		//	var max = parseInt( $('#max').val(), 10 );
+			//var min = document.getElementById('#slidertextmin').value * 1;
+			//var max = document.getElementById('#slidertextmax').value * 1;
+			var age = parseFloat( data[3] ) || 0; // use data for the age column
+	 
+			if ( ( isNaN( min ) && isNaN( max ) ) ||
+				 ( isNaN( min ) && age <= max ) ||
+				 ( min <= age   && isNaN( max ) ) ||
+				 ( min <= age   && age <= max ) )
+			{
+				return true;
+			}
+			return false;
+		}
+	);
 
 // load data
 d3.csv("projectData-0.csv", function(error, data) {
@@ -141,10 +165,11 @@ d3.csv("projectData-0.csv", function(error, data) {
   data.forEach(function(d) {
     d.rate = +d.rate;
     d.year = +d.year;
-    //d.date = +d.ReleaseDate;
+    d.date = d.ReleaseDate;
 	d.ReleaseDate = parseDate(d.ReleaseDate);
 	d.boxoffice = +d.boxoffice;
 	d.runtime = +d.runtime;
+	d.active = 1;
 //    console.log(d);
   });
 
@@ -262,27 +287,31 @@ d3.csv("projectData-0.csv", function(error, data) {
       .style("text-anchor", "end")
       .text(function(d) { return d;})
 	  
-	   d3.select('#slider').call(d3.slider().axis(true).value( [ 0, 200 ] ).on("slide", function(evt, value) {
+	   d3.select('#slider').call(d3.slider().axis(true).value( [ 0, 250 ] ).on("slide", function(evt, value) {
       d3.select('#slidertextmin').text(value[ 0 ]);
       d3.select('#slidertextmax').text(value[ 1 ]);
-	  var min = +value[0];
-	  var max = +value[1];
+	  runtime_min = +value[0];
+	  runtime_max = +value[1];
+	  
   dot
-    .filter(function(d) { return d.runtime > min && d.runtime < max; })
+    .filter(function(d) { return d.runtime >= runtime_min && d.runtime <= runtime_max; })
     .attr("display", "inline");
   dot
-    .filter(function(d) { return d.runtime < min || d.runtime > max; })
+    .filter(function(d) { return d.runtime < runtime_min || d.runtime > runtime_max; })
     .attr("display", "none");
+	
+	
     }));
 
-	
 	//show the selected movies in table
 	  var dataSet = [];
-data.forEach(function(d) {
-dataSet.push( [d.name,  d.rate, d.boxoffice, d.runtime, d.ReleaseDate, d.genre]);
-  });
-$(document).ready(function() {
-    $('#movietable').DataTable( {
+	data.forEach(function(d) {
+		dataSet.push( [d.name,  d.rate, d.boxoffice, d.runtime, d.date, d.genre + d.genre1 + d.genre2 + d.genre3 + d.genre4 + d.genre5 + d.genre6]);
+    });
+ 
+	
+	$(document).ready(function() {
+    var table = $('#movietable').DataTable( {
         data: dataSet,
         columns: [
             { title: "Name" },
@@ -293,7 +322,13 @@ $(document).ready(function() {
             { title: "Genre" }
         ]
     } );
+	// Event listener to the two range filtering inputs to redraw on input
+     $('#slider, #handle-one, #handle-two').click( function() {
+        table.draw();
+    } );
 });
+
+
 });
 
 </script>
