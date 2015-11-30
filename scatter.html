@@ -19,6 +19,14 @@ body {
 .dot {
   stroke: #000;
 }
+dot.hidden {
+  fill: #ccc !important;
+}
+.brush .extent {
+  stroke: #fff;
+  fill-opacity: .125;
+  shape-rendering: crispEdges;
+}
 
 .tooltip {
   position: absolute;
@@ -42,23 +50,29 @@ body {
 </style>
 </head>
 <body>
+<div id="scatterplot"></div>
 <div class="wrapper">
-<h2>Runtime： <span id="slidertextmin">0</span>, <span id="slidertextmax">200</span></h2>
- 
+<h2>Runtime： <span id="slidertextmin">0</span> to <span id="slidertextmax">250</span> minutes </h2> 
 <div id="slider"></div>
-<table id="movietable" class="display" width="100%"></table>
  </div>
+ <table id="movietable" class="display" width="100%"></table>
 <script src="http://d3js.org/d3.v3.min.js"></script>
 <script src="d3.slider.js"></script>
 <script src="//code.jquery.com/jquery-1.11.3.min.js"></script>
 <script src="https://cdn.datatables.net/1.10.10/js/jquery.dataTables.min.js"></script>
 
 <script>
-var margin = {top: 20, right: 20, bottom: 30, left: 500},
-    width = 1600 - margin.left - margin.right,
+var margin = {top: 20, right: 20, bottom: 30, left: 50},
+    width = 1200 - margin.left - margin.right,
     height = 500 - margin.top - margin.bottom;
 //parse the date/time
 	var parseDate = d3.time.format("%d-%b-%y").parse;
+	
+	//range of runtime filter 
+	var runtime_min = 0;
+	var runtime_max = 250;
+	//for brush
+	var defaultExtent = [[100, 100], [300, 300]];
 /* 
  * value accessor - returns the value to encode for a given data object.
  * scale - maps value to a visual display encoding, such as a pixel position.
@@ -68,7 +82,6 @@ var margin = {top: 20, right: 20, bottom: 30, left: 500},
 
 // setup x 
 var xValue = function(d) { return d.ReleaseDate;}, // data -> value
-    //xScale = d3.scale.linear().range([0, width-100]), // value -> display
     xScale = d3.time.scale().range([0,width-100]);
     xMap = function(d) { return xScale(xValue(d));}, // data -> display
     xAxis = d3.svg.axis().scale(xScale).orient("bottom").ticks(10);
@@ -95,6 +108,14 @@ var cValue = function(d) { return d.genre;},
     .on("drag", dragged)
     .on("dragend", dragended);
 
+	var brush = d3.svg.brush()
+      .x(xScale)
+      .y(yScale)
+	  
+  //    .on("brushstart", brushstart)
+      .on("brush", brushmove)
+      .on("brushend", brushend);
+
     function zoomed(){
       //svg.select(".x.axis").call(xAxis);
       //svg.select(".y.axis").call(yAxis);
@@ -113,15 +134,54 @@ var cValue = function(d) { return d.genre;},
     function dragended(d) {
     d3.select(this).classed("dragging", false);
     }
+	
+	var brushCell;
 
-// add the graph canvas to the body of the webpage
-var svg = d3.select("body").append("svg")
+  	//brush
+	// Clear the previously-active brush, if any.
+ /* function brushstart(p) {
+    if (brushCell !== this) {
+      d3.select(brushCell).call(brush.clear());
+      x.domain(domainByTrait[p.x]);
+      y.domain(domainByTrait[p.y]);
+      brushCell = this;
+    }
+  }
+*/
+  // Highlight the selected circles.
+  function brushmove(d) {
+   var e = brush.extent();
+   d3.select('#slidertextmin').text(e[0][1]);
+   dot
+    .filter(function(d) { return e[0][1] > d.rate; })
+    .attr("display", "none");
+   
+  /*  dot.classed("hidden", function(d) {
+      return e[0][0] > d.year || d.year > e[1][0]
+          || e[0][1] > d.rate || d.rate > e[1][1];
+    });*/
+  }
+
+  // If the brush is empty, select all circles.
+  function brushend() {
+  if (!d3.event.sourceEvent) return; 
+    //if (brush.empty())
+  }
+	
+
+	// add the graph canvas to the body of the webpage
+	var svg = d3.select("#scatterplot").append("svg")
     .attr("width", width + margin.left + margin.right)
     .attr("height", height + margin.top + margin.bottom)
     .append("g")
     .attr("transform", "translate(" + margin.left + "," + margin.top + ")")
-    .call(zoom);
-
+   // .call(zoom)
+	;
+	
+	svg.append("g")
+    .attr("class", "brush")
+    .call(brush);
+	
     var rect = svg.append("rect")
     .attr("width", width)
     .attr("height", height)
@@ -133,6 +193,22 @@ var tooltip = d3.select("body").append("div")
     .attr("class", "tooltip")
     .style("opacity", 0);
 
+	$.fn.dataTable.ext.search.push(
+		function( settings, data, dataIndex ) {
+			var min = runtime_min;
+			var max = runtime_max;
+			var runtime = parseFloat( data[3] ) || 0; 
+			
+			if ( ( isNaN( min ) && isNaN( max ) ) ||
+				 ( isNaN( min ) && runtime <= max ) ||
+				 ( min <= runtime   && isNaN( max ) ) ||
+				 ( min <= runtime   && runtime <= max ) )
+			{
+				return true;
+			}
+			return false;
+		}
+	);
 
 // load data
 d3.csv("projectData-0.csv", function(error, data) {
@@ -141,10 +217,11 @@ d3.csv("projectData-0.csv", function(error, data) {
   data.forEach(function(d) {
     d.rate = +d.rate;
     d.year = +d.year;
-    //d.date = +d.ReleaseDate;
+    d.date = d.ReleaseDate;
 	d.ReleaseDate = parseDate(d.ReleaseDate);
 	d.boxoffice = +d.boxoffice;
 	d.runtime = +d.runtime;
+	d.active = 1;
 //    console.log(d);
   });
 
@@ -225,7 +302,8 @@ d3.csv("projectData-0.csv", function(error, data) {
 			movie_object.imdb = d.imdb;
 			window.showModalDialog("SingleMoviePage.html", movie_object, "dialogHeight:500px; dialogLeft:500px;"); 
 	})
-      .call(drag);
+   //   .call(drag)
+   ;
 
   // draw legend
   var legend = svg.selectAll(".legend")
@@ -262,27 +340,32 @@ d3.csv("projectData-0.csv", function(error, data) {
       .style("text-anchor", "end")
       .text(function(d) { return d;})
 	  
-	   d3.select('#slider').call(d3.slider().axis(true).value( [ 0, 200 ] ).on("slide", function(evt, value) {
+	   d3.select('#slider').call(d3.slider().axis(true).value( [ 0, 250 ] ).on("slide", function(evt, value) {
       d3.select('#slidertextmin').text(value[ 0 ]);
       d3.select('#slidertextmax').text(value[ 1 ]);
-	  var min = +value[0];
-	  var max = +value[1];
+	  runtime_min = +value[0];
+	  runtime_max = +value[1];
+	  
   dot
-    .filter(function(d) { return d.runtime > min && d.runtime < max; })
+    .filter(function(d) { return d.runtime >= runtime_min && d.runtime <= runtime_max; })
     .attr("display", "inline");
   dot
-    .filter(function(d) { return d.runtime < min || d.runtime > max; })
+    .filter(function(d) { return d.runtime < runtime_min || d.runtime > runtime_max; })
     .attr("display", "none");
+	
+	
     }));
+
 
 	
 	//show the selected movies in table
 	  var dataSet = [];
-data.forEach(function(d) {
-dataSet.push( [d.name,  d.rate, d.boxoffice, d.runtime, d.ReleaseDate, d.genre]);
-  });
-$(document).ready(function() {
-    $('#movietable').DataTable( {
+	data.forEach(function(d) {
+		dataSet.push( [d.name,  d.rate, d.boxoffice, d.runtime, d.date, d.genre + d.genre1 + d.genre2 + d.genre3 + d.genre4 + d.genre5 + d.genre6]);
+    });
+ 
+	$(document).ready(function() {
+    var table = $('#movietable').DataTable( {
         data: dataSet,
         columns: [
             { title: "Name" },
@@ -293,7 +376,13 @@ $(document).ready(function() {
             { title: "Genre" }
         ]
     } );
+	// Event listener to the two range filtering inputs to redraw on input
+     $('#slider, #handle-one, #handle-two').click( function() {
+        table.draw();
+    } );
 });
+
+
 });
 
 </script>
