@@ -19,6 +19,14 @@ body {
 .dot {
   stroke: #000;
 }
+dot.hidden {
+  fill: #ccc !important;
+}
+.brush .extent {
+  stroke: #fff;
+  fill-opacity: .125;
+  shape-rendering: crispEdges;
+}
 
 .tooltip {
   position: absolute;
@@ -63,6 +71,8 @@ var margin = {top: 20, right: 20, bottom: 30, left: 50},
 	//range of runtime filter 
 	var runtime_min = 0;
 	var runtime_max = 250;
+	//for brush
+	var defaultExtent = [[100, 100], [300, 300]];
 /* 
  * value accessor - returns the value to encode for a given data object.
  * scale - maps value to a visual display encoding, such as a pixel position.
@@ -72,7 +82,6 @@ var margin = {top: 20, right: 20, bottom: 30, left: 50},
 
 // setup x 
 var xValue = function(d) { return d.ReleaseDate;}, // data -> value
-    //xScale = d3.scale.linear().range([0, width-100]), // value -> display
     xScale = d3.time.scale().range([0,width-100]);
     xMap = function(d) { return xScale(xValue(d));}, // data -> display
     xAxis = d3.svg.axis().scale(xScale).orient("bottom").ticks(10);
@@ -99,6 +108,14 @@ var cValue = function(d) { return d.genre;},
     .on("drag", dragged)
     .on("dragend", dragended);
 
+	var brush = d3.svg.brush()
+      .x(xScale)
+      .y(yScale)
+	  
+  //    .on("brushstart", brushstart)
+      .on("brush", brushmove)
+      .on("brushend", brushend);
+
     function zoomed(){
       //svg.select(".x.axis").call(xAxis);
       //svg.select(".y.axis").call(yAxis);
@@ -117,15 +134,54 @@ var cValue = function(d) { return d.genre;},
     function dragended(d) {
     d3.select(this).classed("dragging", false);
     }
+	
+	var brushCell;
 
-// add the graph canvas to the body of the webpage
-var svg = d3.select("#scatterplot").append("svg")
+  	//brush
+	// Clear the previously-active brush, if any.
+ /* function brushstart(p) {
+    if (brushCell !== this) {
+      d3.select(brushCell).call(brush.clear());
+      x.domain(domainByTrait[p.x]);
+      y.domain(domainByTrait[p.y]);
+      brushCell = this;
+    }
+  }
+*/
+  // Highlight the selected circles.
+  function brushmove(d) {
+   var e = brush.extent();
+   d3.select('#slidertextmin').text(e[0][1]);
+   dot
+    .filter(function(d) { return e[0][1] > d.rate; })
+    .attr("display", "none");
+   
+  /*  dot.classed("hidden", function(d) {
+      return e[0][0] > d.year || d.year > e[1][0]
+          || e[0][1] > d.rate || d.rate > e[1][1];
+    });*/
+  }
+
+  // If the brush is empty, select all circles.
+  function brushend() {
+  if (!d3.event.sourceEvent) return; 
+    //if (brush.empty())
+  }
+	
+
+	// add the graph canvas to the body of the webpage
+	var svg = d3.select("#scatterplot").append("svg")
     .attr("width", width + margin.left + margin.right)
     .attr("height", height + margin.top + margin.bottom)
     .append("g")
     .attr("transform", "translate(" + margin.left + "," + margin.top + ")")
-    .call(zoom);
-
+   // .call(zoom)
+	;
+	
+	svg.append("g")
+    .attr("class", "brush")
+    .call(brush);
+	
     var rect = svg.append("rect")
     .attr("width", width)
     .attr("height", height)
@@ -246,7 +302,8 @@ d3.csv("projectData-0.csv", function(error, data) {
 			movie_object.imdb = d.imdb;
 			window.showModalDialog("SingleMoviePage.html", movie_object, "dialogHeight:500px; dialogLeft:500px;"); 
 	})
-      .call(drag);
+   //   .call(drag)
+   ;
 
   // draw legend
   var legend = svg.selectAll(".legend")
@@ -299,13 +356,14 @@ d3.csv("projectData-0.csv", function(error, data) {
 	
     }));
 
+
+	
 	//show the selected movies in table
 	  var dataSet = [];
 	data.forEach(function(d) {
 		dataSet.push( [d.name,  d.rate, d.boxoffice, d.runtime, d.date, d.genre + d.genre1 + d.genre2 + d.genre3 + d.genre4 + d.genre5 + d.genre6]);
     });
  
-	
 	$(document).ready(function() {
     var table = $('#movietable').DataTable( {
         data: dataSet,
