@@ -419,25 +419,16 @@ d3.csv("projectData-0.csv", function(error, data) {
 				
 	//show the histogram of genre
 	//var genre_his_data = histogram(genre_data); 
-	var genre_his_data = [
-	{x: "Action ", y: 350},
-	{x: "Animation ", y: 180},
-	{x: "Adventure ", y: 290},
-	{x: "Comedy ", y: 560},
-	{x: "Drama ", y: 320},
-	{x: "Biography ", y: 150}
-	
-	];
-	  console.log(genre_his_data);
-	var max_height = 100;
+	var genre_his_data = [];
 	var rect_step = 40;
 	var heights = [];
-	for(var i = 0;i < genre_his_data.length; i++){
+	for(var i = 0;i < color.domain().length; i++){
+		genre_his_data.push({x: color.domain()[i], y: 10*i+100});
 		heights.push( genre_his_data[i].y );
 	}
 	var yScale_his = d3.scale.linear()
 						.domain([0,d3.max(heights)])
-						.range([0,max_height]);
+						.range([0,height2]);
 	
 	//绘制矩形
 	genrehistogram.selectAll("rect")
@@ -448,7 +439,7 @@ d3.csv("projectData-0.csv", function(error, data) {
 				return i * rect_step; 
 			})
 			.attr("y", function(d,i){
-				return max_height - yScale_his(d.y);
+				return height2 - yScale_his(d.y);
 			})
 			.attr("width", function(d,i){
 				return rect_step - 2; 
@@ -469,11 +460,8 @@ d3.csv("projectData-0.csv", function(error, data) {
 			.on("mouseout", function(d) {
 				genrename = d.x;
 				dot
-				.filter(function(d) { return d.genre == genrename; })
 				.style("opacity", 1);
-				dot
-				.filter(function(d) { return d.genre != genrename; })
-				.style("opacity", .3);
+			;
 			})
 			.on("click", function(d){
 				genrename = d.x;
@@ -491,9 +479,9 @@ d3.csv("projectData-0.csv", function(error, data) {
 			.attr("stroke","black")
 			.attr("stroke-width","1px")
 			.attr("x1",0)
-			.attr("y1",max_height)
+			.attr("y1",height2)
 			.attr("x2",data.length * rect_step)
-			.attr("y2",max_height);
+			.attr("y2",height2);
 	
 	//绘制坐标轴的分隔符直线
 	genrehistogram.selectAll(".linetick")
@@ -505,11 +493,11 @@ d3.csv("projectData-0.csv", function(error, data) {
 			.attr("x1",function(d,i){
 				return i * rect_step + rect_step/2;
 			})
-			.attr("y1",max_height)
+			.attr("y1",height2)
 			.attr("x2",function(d,i){
 				return i * rect_step + rect_step/2;
 			})
-			.attr("y2",max_height + 5);
+			.attr("y2",height2 + 5);
 	
 	//绘制文字
 	genrehistogram.selectAll("text")
@@ -521,7 +509,7 @@ d3.csv("projectData-0.csv", function(error, data) {
 				return i * rect_step; 
 			})
 			.attr("y", function(d,i){
-				return max_height;
+				return height2;
 			})
 			.attr("dx",rect_step/2 - 8)
 			.attr("dy","15px")
