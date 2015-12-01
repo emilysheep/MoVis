@@ -95,7 +95,7 @@ margin2 = {top: 480, right: 10, bottom: 20, left: 40},
 	var xValue = function(d) { return d.ReleaseDate;}, // data -> value
     xScale = d3.time.scale().range([0,width-100]);
     xMap = function(d) { return xScale(xValue(d));}, // data -> display
-    xAxis = d3.svg.axis().scale(xScale).orient("bottom").ticks(10);
+    xAxis = d3.svg.axis().scale(xScale).orient("bottom").tickPadding(6);
 
 	// setup y
 	var yValue = function(d) { return d.rate;}, // data -> value
@@ -104,26 +104,20 @@ margin2 = {top: 480, right: 10, bottom: 20, left: 40},
     yAxis = d3.svg.axis().scale(yScale).orient("left");
 
     // setup fill color
-	var cValue = function(d) { return d.genre;},
-    color = d3.scale.category10();
-
-	
-	
-
-
-				
+	 var cValue = function(d) { return d.genre;},
+    color = d3.scale.category10();		
 				
     var zoom = d3.behavior.zoom()
     .x(xScale)
     .y(yScale)
-    .scaleExtent([1,20])
+    //.scaleExtent([1,10])
     .on("zoom",zoomed);
 
-    var drag = d3.behavior.drag()
-    .origin(function(d) { return d; })
-    .on("dragstart", dragstarted)
-    .on("drag", dragged)
-    .on("dragend", dragended);
+    //var drag = d3.behavior.drag()
+    //.origin(function(d) { return d; })
+    //.on("dragstart", dragstarted)
+    //.on("drag", dragged)
+    //.on("dragend", dragended);
 
 	var brush = d3.svg.brush()
       .x(xScale)
@@ -134,9 +128,10 @@ margin2 = {top: 480, right: 10, bottom: 20, left: 40},
       .on("brushend", brushend);
 
     function zoomed(){
-      scatterplot.select(".x.axis").call(xAxis);
-      scatterplot.select(".y.axis").call(yAxis);
+      svg.select("g.x.axis").call(xAxis);
+      svg.select("g.y.axis").call(yAxis);
     scatterplot.attr("transform", "translate(" + d3.event.translate + ")scale(" + d3.event.scale + ")");
+    //svg.attr("transform", "translate(" + d3.event.translate + ")" + " scale(" + d3.event.scale + ")")
     }
 	
 	function reset() {
@@ -146,18 +141,18 @@ margin2 = {top: 480, right: 10, bottom: 20, left: 40},
 		.event);
 	}
 
-    function dragstarted(d) {
-    d3.event.sourceEvent.stopPropagation();
-    d3.select(this).classed("dragging", true);
-    }
+    //function dragstarted(d) {
+    //d3.event.sourceEvent.stopPropagation();
+    //d3.select(this).classed("dragging", true);
+    //}
 
-    function dragged(d) {
-    d3.select(this).attr("cx", d.x = d3.event.x).attr("cy", d.y = d3.event.y);
-    }
+    //function dragged(d) {
+    //d3.select(this).attr("cx", d.x = d3.event.x).attr("cy", d.y = d3.event.y);
+    //}
 
-    function dragended(d) {
-    d3.select(this).classed("dragging", false);
-    }
+    //function dragended(d) {
+    //d3.select(this).classed("dragging", false);
+    //}
 	
 	var brushCell;
 
@@ -222,7 +217,7 @@ margin2 = {top: 480, right: 10, bottom: 20, left: 40},
     //.style("pointer-events", "all");
 
 	// add the tooltip area to the webpage
-	var tooltip = d3.select("#scatterplot").append("div")
+	var tooltip = d3.select("#scatterplot").append("svg")
     .attr("class", "tooltip")
     .style("opacity", 0);
 
@@ -262,13 +257,17 @@ d3.csv("projectData-0.csv", function(error, data) {
 
 
   // don't want dots overlapping axis, so add in buffer to data domain
-  xScale.domain(d3.extent(data, function(d){return d.ReleaseDate;}));
-  yScale.domain([0,d3.max(data,function(d){return d.rate})]);
+  //xScale.domain(d3.extent(data, function(d){return d.ReleaseDate;}));
+  //yScale.domain([0,d3.max(data,function(d){return d.rate})]);
   //xScale.domain([d3.min(data, xValue)-1, d3.max(data, xValue)+1]);
   //yScale.domain([d3.min(data, yValue)-1, d3.max(data, yValue)+1]);
 
+  xScale.domain([new Date(2005, 0, 1), new Date(2012, 0, 0)]);
+  yScale.domain([0, d3.max(data, function(d) { return d.rate; })]);
+  zoom.x(xScale);
+
   // x-axis
-  scatterplot.append("g")
+  svg.append("g")
       .attr("class", "x axis")
       .attr("transform", "translate(0," + height + ")")
       .call(xAxis)
@@ -280,7 +279,7 @@ d3.csv("projectData-0.csv", function(error, data) {
       .text("Release Date");
 
   // y-axis
-  scatterplot.append("g")
+  svg.append("g")
       .attr("class", "y axis")
       .call(yAxis)
     .append("text")
@@ -342,7 +341,7 @@ d3.csv("projectData-0.csv", function(error, data) {
    ;
 
   // draw legend
-  var legend = scatterplot.selectAll(".legend")
+  var legend = svg.selectAll(".legend")
       .data(color.domain())
     .enter().append("g")
       .attr("class", "legend")
