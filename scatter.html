@@ -84,6 +84,10 @@ margin2 = {top: 480, right: 10, bottom: 20, left: 40},
 	var dataSet = [];
 	//genre histogram data
 	var genre_data = [];
+	
+	//genre filter
+	var genrename = "";
+	
 /* 
  * value accessor - returns the value to encode for a given data object.
  * scale - maps value to a visual display encoding, such as a pixel position.
@@ -108,7 +112,7 @@ margin2 = {top: 480, right: 10, bottom: 20, left: 40},
     color = d3.scale.category10();
 
 	
-	
+	var dot;
 
 
 				
@@ -140,10 +144,12 @@ margin2 = {top: 480, right: 10, bottom: 20, left: 40},
     }
 	
 	function reset() {
-	scatterplot.call(zoom
+	
+	
+	/*scatterplot.call(zoom
 		.x(x.domain(d3.extent(data, function(d) { return d.ReleaseDate; })))
 		.y(y.domain([0,d3.max(data,function(d){return d.rate})]))
-		.event);
+		.event);*/
 	}
 
     function dragstarted(d) {
@@ -159,8 +165,6 @@ margin2 = {top: 480, right: 10, bottom: 20, left: 40},
     d3.select(this).classed("dragging", false);
     }
 	
-	var brushCell;
-
   	//brush
 	// Clear the previously-active brush, if any.
  /* function brushstart(p) {
@@ -175,10 +179,18 @@ margin2 = {top: 480, right: 10, bottom: 20, left: 40},
   // Highlight the selected circles.
   function brushmove(d) {
    var e = brush.extent();
-   d3.select('#slidertextmin').text(e[0][1]);
+    dot
+    .filter(function(d) { return e[0][1] <= d.rate && d.rate <= e[1][1]&&
+							e[0][0] <= d.ReleaseDate || d.ReleaseDate <= e[1][0] ; })
+   // .attr("display", "inline")
+	.style("opacity", 1)
+	;
    dot
-    .filter(function(d) { return e[0][1] > d.rate; })
-    .attr("display", "none");
+    .filter(function(d) { return e[0][1] > d.rate || d.rate > e[1][1] ||
+							e[0][0] > d.ReleaseDate || d.ReleaseDate > e[1][0]; })
+    .style("opacity", .3);
+	//.attr("display", "none")
+	;
    
   /*  dot.classed("hidden", function(d) {
       return e[0][0] > d.year || d.year > e[1][0]
@@ -189,7 +201,11 @@ margin2 = {top: 480, right: 10, bottom: 20, left: 40},
   // If the brush is empty, select all circles.
   function brushend() {
   if (!d3.event.sourceEvent) return; 
-    //if (brush.empty())
+    if (brush.empty()){
+	 dot
+	.style("opacity", 1)
+	;
+	}
   }
 	d3.select("button").on("click", reset);
 	
@@ -204,7 +220,8 @@ margin2 = {top: 480, right: 10, bottom: 20, left: 40},
 	var scatterplot = svg.append("g")
     .attr("class", "scatterplot")
     .attr("transform", "translate(" + margin.left + "," + margin.top + ")")
-	.call(zoom);
+	//.call(zoom)
+	;
 	
 	var genrehistogram = svg.append("g")
     .attr("class", "genrehistogram")
@@ -292,7 +309,7 @@ d3.csv("projectData-0.csv", function(error, data) {
       .text("Rate");
 
   // draw dots
- var dot = scatterplot.selectAll(".dot")
+  dot = scatterplot.selectAll(".dot")
       .data(data)
     .enter().append("circle")
 	
@@ -384,10 +401,10 @@ d3.csv("projectData-0.csv", function(error, data) {
 	  
   dot
     .filter(function(d) { return d.runtime >= runtime_min && d.runtime <= runtime_max; })
-    .attr("display", "inline");
+    .style("opacity", 1);
   dot
     .filter(function(d) { return d.runtime < runtime_min || d.runtime > runtime_max; })
-    .attr("display", "none");
+    .style("opacity", 0);
 	
 	
     }));
@@ -439,7 +456,35 @@ d3.csv("projectData-0.csv", function(error, data) {
 			.attr("height", function(d){
 				return yScale_his(d.y);
 			})
-			.attr("fill", function(d){return color(d.x);});
+			.attr("fill", function(d){return color(d.x);})
+			 .on("mouseover", function(d) {
+				genrename = d.x;
+				dot
+				.filter(function(d) { return d.genre == genrename; })
+				.style("opacity", 1);
+				dot
+				.filter(function(d) { return d.genre != genrename; })
+				.style("opacity", .3);
+			})
+			.on("mouseout", function(d) {
+				genrename = d.x;
+				dot
+				.filter(function(d) { return d.genre == genrename; })
+				.style("opacity", 1);
+				dot
+				.filter(function(d) { return d.genre != genrename; })
+				.style("opacity", .3);
+			})
+			.on("click", function(d){
+				genrename = d.x;
+				dot
+				.filter(function(d) { return d.genre == genrename; })
+				.style("opacity", 1);
+				dot
+				.filter(function(d) { return d.genre != genrename; })
+				.style("opacity", 0);
+		
+	  });
 	
 	//绘制坐标轴的直线
 	genrehistogram.append("line")
