@@ -394,28 +394,34 @@ d3.csv("projectData-0.csv", function(error, data) {
 
 	
 	//setup histogram for genre
-	var bin_num = 30;
+	var bin_num = 20;
 	var histogram = d3.layout.histogram()
 				.range([63,216])
 			        .bins(bin_num)
 				.frequency(true);
 				
 	//show the histogram of genre
-	var genre_his_data = histogram(genre_data); 
+	//var genre_his_data = histogram(genre_data); 
+	var genre_his_data = [
+	{x: "Action ", y: 350},
+	{x: "Animation ", y: 180},
+	{x: "Adventure ", y: 290},
+	{x: "Comedy ", y: 560},
+	{x: "Drama ", y: 320},
+	{x: "Biography ", y: 150}
+	
+	];
 	  console.log(genre_his_data);
 	var max_height = 100;
-	var rect_step = 30;
+	var rect_step = 40;
 	var heights = [];
 	for(var i = 0;i < genre_his_data.length; i++){
 		heights.push( genre_his_data[i].y );
-	//	heights.push( i );
 	}
-	console.log(heights);
 	var yScale_his = d3.scale.linear()
-						.domain([d3.min(heights),d3.max(heights)])
+						.domain([0,d3.max(heights)])
 						.range([0,max_height]);
-	console.log(color);
-	console.log(color.domain());
+	
 	//绘制矩形
 	genrehistogram.selectAll("rect")
 			.data(genre_his_data)
@@ -433,7 +439,7 @@ d3.csv("projectData-0.csv", function(error, data) {
 			.attr("height", function(d){
 				return yScale_his(d.y);
 			})
-			.attr("fill", color);
+			.attr("fill", function(d){return color(d.x);});
 	
 	//绘制坐标轴的直线
 	genrehistogram.append("line")
@@ -462,7 +468,7 @@ d3.csv("projectData-0.csv", function(error, data) {
 	
 	//绘制文字
 	genrehistogram.selectAll("text")
-			.data(color.domain())
+			.data(genre_his_data)
 			.enter()
 			.append("text")
 			.attr("font-size","10px")
