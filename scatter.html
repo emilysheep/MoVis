@@ -76,7 +76,7 @@ margin2 = {top: 480, right: 10, bottom: 20, left: 40},
 	height2= 600 - margin2.top - margin2.bottom;
 	//parse the date/time
 	var parseDate = d3.time.format("%d-%b-%y").parse;
-	
+	//var parseDate = d3.time.format("%m/%y").parse;
 	//range of runtime filter 
 	var runtime_min = 0;
 	var runtime_max = 250;
@@ -244,7 +244,7 @@ margin2 = {top: 480, right: 10, bottom: 20, left: 40},
 	);
 
 // load data
-d3.csv("Content1.csv", function(error, data) {
+d3.csv("projectData-0.csv", function(error, data) {
 
   // change string (from CSV) into number format
   data.forEach(function(d) {
@@ -406,14 +406,16 @@ d3.csv("Content1.csv", function(error, data) {
 	var max_height = 100;
 	var rect_step = 30;
 	var heights = [];
-	for(var i=0;i<genre_his_data.length;i++){
+	for(var i = 0;i < genre_his_data.length; i++){
 		heights.push( genre_his_data[i].y );
+	//	heights.push( i );
 	}
 	console.log(heights);
 	var yScale_his = d3.scale.linear()
 						.domain([d3.min(heights),d3.max(heights)])
 						.range([0,max_height]);
-	
+	console.log(color);
+	console.log(color.domain());
 	//绘制矩形
 	genrehistogram.selectAll("rect")
 			.data(genre_his_data)
@@ -431,7 +433,7 @@ d3.csv("Content1.csv", function(error, data) {
 			.attr("height", function(d){
 				return yScale_his(d.y);
 			})
-			.attr("fill","steelblue");
+			.attr("fill", color);
 	
 	//绘制坐标轴的直线
 	genrehistogram.append("line")
@@ -460,7 +462,7 @@ d3.csv("Content1.csv", function(error, data) {
 	
 	//绘制文字
 	genrehistogram.selectAll("text")
-			.data(genre_his_data)
+			.data(color.domain())
 			.enter()
 			.append("text")
 			.attr("font-size","10px")
