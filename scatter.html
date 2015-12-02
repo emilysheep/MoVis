@@ -87,7 +87,7 @@ margin2 = {top: 480, right: 10, bottom: 20, left: 40},
 	
 	//genre filter
 	var genrename = "";
-	
+	var brush_extent = [[new Date(2005, 0, 1), 0],[ new Date(2016, 0, 0), 10]];
 /* 
  * value accessor - returns the value to encode for a given data object.
  * scale - maps value to a visual display encoding, such as a pixel position.
@@ -99,7 +99,7 @@ margin2 = {top: 480, right: 10, bottom: 20, left: 40},
 	var xValue = function(d) { return d.ReleaseDate;}, // data -> value
     xScale = d3.time.scale().range([0,width-100]);
     xMap = function(d) { return xScale(xValue(d));}, // data -> display
-    xAxis = d3.svg.axis().scale(xScale).orient("bottom").ticks(10);
+    xAxis = d3.svg.axis().scale(xScale).orient("bottom").tickPadding(6);
 
 	// setup y
 	var yValue = function(d) { return d.rate;}, // data -> value
@@ -110,104 +110,129 @@ margin2 = {top: 480, right: 10, bottom: 20, left: 40},
     // setup fill color
 	var cValue = function(d) { return d.genre;},
     color = d3.scale.category10();
-
 	
 	var dot;
 
-
-				
-				
     var zoom = d3.behavior.zoom()
     .x(xScale)
     .y(yScale)
-    .scaleExtent([1,20])
+    .scaleExtent([1,10])
     .on("zoom",zoomed);
 
-    var drag = d3.behavior.drag()
-    .origin(function(d) { return d; })
-    .on("dragstart", dragstarted)
-    .on("drag", dragged)
-    .on("dragend", dragended);
 
 	var brush = d3.svg.brush()
       .x(xScale)
       .y(yScale)
-	  
-  //    .on("brushstart", brushstart)
       .on("brush", brushmove)
       .on("brushend", brushend);
 
-    function zoomed(){
-      scatterplot.select(".x.axis").call(xAxis);
-      scatterplot.select(".y.axis").call(yAxis);
-    scatterplot.attr("transform", "translate(" + d3.event.translate + ")scale(" + d3.event.scale + ")");
-    }
-	
+	d3.select("button").on("click", reset);
 	function reset() {
+		//reset all the filter parameters
+		runtime_min = 0;
+		runtime_max = 250;
+		genrename = "";
+		brush_extent = [[new Date(2005, 0, 1), 0],[ new Date(2016, 0, 0), 10]];
+		
+		scatterplot.call(zoom
+			.x(xScale.domain([new Date(2005, 0, 1), new Date(2016, 0, 0)]))
+			.y(yScale.domain([0, 10]))
+			.event);
+			
+		dot.style("opacity", 1);
+		
+		detail_table.draw();
 	
-	
-	/*scatterplot.call(zoom
-		.x(x.domain(d3.extent(data, function(d) { return d.ReleaseDate; })))
-		.y(y.domain([0,d3.max(data,function(d){return d.rate})]))
-		.event);*/
 	}
-
-    function dragstarted(d) {
-    d3.event.sourceEvent.stopPropagation();
-    d3.select(this).classed("dragging", true);
-    }
-
-    function dragged(d) {
-    d3.select(this).attr("cx", d.x = d3.event.x).attr("cy", d.y = d3.event.y);
-    }
-
-    function dragended(d) {
-    d3.select(this).classed("dragging", false);
+	
+    function zoomed(){
+      svg.select("g.x.axis").call(xAxis);
+      svg.select("g.y.axis").call(yAxis);
+      scatterplot.attr("transform", "translate(" + d3.event.translate + ")scale(" + d3.event.scale + ")");
     }
 	
-  	//brush
-	// Clear the previously-active brush, if any.
- /* function brushstart(p) {
-    if (brushCell !== this) {
-      d3.select(brushCell).call(brush.clear());
-      x.domain(domainByTrait[p.x]);
-      y.domain(domainByTrait[p.y]);
-      brushCell = this;
-    }
-  }
-*/
+   function filter_scatterplot(){
+		if(genrename == ""){
+			dot
+			.filter(function(d) { return d.runtime >= runtime_min && d.runtime <= runtime_max &&
+								
+								(brush_extent[0][1] <= d.rate && d.rate <= brush_extent[1][1]&&
+								brush_extent[0][0] <= d.ReleaseDate && d.ReleaseDate <= brush_extent[1][0] )
+								
+								; })
+			.style("opacity", 1)
+			;
+			dot
+			.filter(function(d) { return d.runtime >= runtime_min && d.runtime <= runtime_max && 
+								
+								(brush_extent[0][1] > d.rate || d.rate > brush_extent[1][1] ||
+								brush_extent[0][0] > d.ReleaseDate || d.ReleaseDate > brush_extent[1][0]); })
+			.style("opacity", .3);
+			;
+			dot
+			.filter(function(d) { return d.runtime < runtime_min || d.runtime > runtime_max  
+										
+									; })
+			.style("opacity", 0);
+		}
+		else{
+			dot
+			.filter(function(d) { return d.runtime >= runtime_min && d.runtime <= runtime_max &&
+								d.genre == genrename &&
+								(brush_extent[0][1] <= d.rate && d.rate <= brush_extent[1][1]&&
+								brush_extent[0][0] <= d.ReleaseDate && d.ReleaseDate <= brush_extent[1][0] )
+								
+								; })
+			.style("opacity", 1)
+			;
+			dot
+			.filter(function(d) { return d.runtime >= runtime_min && d.runtime <= runtime_max && 
+								d.genre == genrename &&
+								(brush_extent[0][1] > d.rate || d.rate > brush_extent[1][1] ||
+								brush_extent[0][0] > d.ReleaseDate || d.ReleaseDate > brush_extent[1][0]); })
+			.style("opacity", .3);
+			;
+			dot
+			.filter(function(d) { return d.runtime < runtime_min || d.runtime > runtime_max || 
+										d.genre != genrename
+									; })
+			.style("opacity", 0);
+		}
+   }
+   
+   $.fn.dataTable.ext.search.push(
+		function( settings, data, dataIndex ) {
+			var rate = data[1];
+			var runtime =  data[3];
+			var ReleaseDate = parseDate(data[4]);
+			if ( runtime_min <= runtime && runtime <= runtime_max 
+				&&(brush_extent[0][1] <= rate && rate <= brush_extent[1][1]&&
+				  brush_extent[0][0] <= ReleaseDate && ReleaseDate <= brush_extent[1][0] )
+			)
+			{
+				return true;
+			}
+			return false;
+		}
+	);
+
   // Highlight the selected circles.
   function brushmove(d) {
-   var e = brush.extent();
-    dot
-    .filter(function(d) { return e[0][1] <= d.rate && d.rate <= e[1][1]&&
-							e[0][0] <= d.ReleaseDate || d.ReleaseDate <= e[1][0] ; })
-   // .attr("display", "inline")
-	.style("opacity", 1)
-	;
-   dot
-    .filter(function(d) { return e[0][1] > d.rate || d.rate > e[1][1] ||
-							e[0][0] > d.ReleaseDate || d.ReleaseDate > e[1][0]; })
-    .style("opacity", .3);
-	//.attr("display", "none")
-	;
-   
-  /*  dot.classed("hidden", function(d) {
-      return e[0][0] > d.year || d.year > e[1][0]
-          || e[0][1] > d.rate || d.rate > e[1][1];
-    });*/
+   brush_extent = brush.extent();
+   filter_scatterplot(); 
+   detail_table.draw();
   }
 
   // If the brush is empty, select all circles.
   function brushend() {
   if (!d3.event.sourceEvent) return; 
     if (brush.empty()){
-	 dot
-	.style("opacity", 1)
-	;
+	 brush_extent = [[new Date(2005, 0, 1), 0],[ new Date(2016, 0, 0), 10]];
+	 filter_scatterplot(); 
+	 detail_table.draw();
 	}
   }
-	d3.select("button").on("click", reset);
+	
 	
 	// add the graph canvas to the body of the webpage
 	var svg = d3.select("#scatterplot").append("svg")
@@ -235,30 +260,12 @@ margin2 = {top: 480, right: 10, bottom: 20, left: 40},
     .attr("width", width)
     .attr("height", height)
     .style("fill", "none")
-	// .call(zoom);
     //.style("pointer-events", "all");
 
 	// add the tooltip area to the webpage
-	var tooltip = d3.select("#scatterplot").append("div")
+	var tooltip = d3.select("#scatterplot").append("svg")
     .attr("class", "tooltip")
     .style("opacity", 0);
-
-	$.fn.dataTable.ext.search.push(
-		function( settings, data, dataIndex ) {
-			var min = runtime_min;
-			var max = runtime_max;
-			var runtime = parseFloat( data[3] ) || 0; 
-			
-			if ( ( isNaN( min ) && isNaN( max ) ) ||
-				 ( isNaN( min ) && runtime <= max ) ||
-				 ( min <= runtime   && isNaN( max ) ) ||
-				 ( min <= runtime   && runtime <= max ) )
-			{
-				return true;
-			}
-			return false;
-		}
-	);
 
 // load data
 d3.csv("projectData-0.csv", function(error, data) {
@@ -271,7 +278,6 @@ d3.csv("projectData-0.csv", function(error, data) {
 	d.ReleaseDate = parseDate(d.ReleaseDate);
 	d.boxoffice = +d.boxoffice;
 	d.runtime = +d.runtime;
-	d.active = 1;
 	dataSet.push( [d.name,  d.rate, d.boxoffice, d.runtime, d.date, d.genre + d.genre1 + d.genre2 + d.genre3 + d.genre4 + d.genre5 + d.genre6]);
     genre_data.push(d.runtime);
   
@@ -279,25 +285,24 @@ d3.csv("projectData-0.csv", function(error, data) {
 
 
   // don't want dots overlapping axis, so add in buffer to data domain
-  xScale.domain(d3.extent(data, function(d){return d.ReleaseDate;}));
-  yScale.domain([0,d3.max(data,function(d){return d.rate})]);
-  //xScale.domain([d3.min(data, xValue)-1, d3.max(data, xValue)+1]);
-  //yScale.domain([d3.min(data, yValue)-1, d3.max(data, yValue)+1]);
+
+	xScale.domain([new Date(2005, 0, 1), new Date(2016, 0, 0)]);
+	yScale.domain([0, 10]);
 
   // x-axis
-  scatterplot.append("g")
+  svg.append("g")
       .attr("class", "x axis")
       .attr("transform", "translate(0," + height + ")")
       .call(xAxis)
     .append("text")
       .attr("class", "label")
-      .attr("x", width -100)
+      .attr("x", width-50)
       .attr("y", -6)
       .style("text-anchor", "end")
       .text("Release Date");
 
   // y-axis
-  scatterplot.append("g")
+  svg.append("g")
       .attr("class", "y axis")
       .call(yAxis)
     .append("text")
@@ -316,13 +321,13 @@ d3.csv("projectData-0.csv", function(error, data) {
       //.attr("class", "dot")
       .attr("r", function(d){
 		  if(d.boxoffice>50000000){
-				return 9;
+				return "9px";
 		  }
 		  else if(d.boxoffice>5000000){
-				return 6;
+				return "6px";
 		  }
 		  else{
-				return 3;
+				return "3px";
 		  }
 	  })
       .attr("cx", xMap)
@@ -354,73 +359,21 @@ d3.csv("projectData-0.csv", function(error, data) {
 			movie_object.runtime = d.runtime;
 			movie_object.imdb = d.imdb;
 			window.showModalDialog("SingleMoviePage.html", movie_object, "dialogHeight:500px; dialogLeft:500px;"); 
-	})
-   //    .call(drag)
-   ;
-
-  // draw legend
-  var legend = scatterplot.selectAll(".legend")
-      .data(color.domain())
-    .enter().append("g")
-      .attr("class", "legend")
-      .attr("transform", function(d, i) { return "translate(0," + i * 20 + ")"; })
-	  .on("click", function(){
-			var genrename = d3.select(this).data();
-			dot
-			.filter(function(d) { return d.genre == genrename; })
-			.attr("display", "inline");
-			dot
-			.filter(function(d) { return d.genre != genrename; })
-			.attr("display", "none");
-		
-	  });
-	  
-	  
-
-  // draw legend colored rectangles
-  legend.append("rect")
-      .attr("x", width - 18)
-      .attr("width", 18)
-      .attr("height", 18)
-      .style("fill", color);
-
-      // draw legend text
-  legend.append("text")
-      .attr("x", width - 24)
-      .attr("y", 9)
-      .attr("dy", ".35em")
-	  .attr("id", function(d){ return d;})
-      .style("text-anchor", "end")
-      .text(function(d) { return d;})
-	  
-	   d3.select('#slider').call(d3.slider().axis(true).value( [ 0, 250 ] ).on("slide", function(evt, value) {
+	});
+ 
+	  d3.select('#slider').call(d3.slider().axis(true).value( [ 0, 250 ] ).on("slide", function(evt, value) {
       d3.select('#slidertextmin').text(value[ 0 ]);
       d3.select('#slidertextmax').text(value[ 1 ]);
 	  runtime_min = +value[0];
 	  runtime_max = +value[1];
 	  
-  dot
-    .filter(function(d) { return d.runtime >= runtime_min && d.runtime <= runtime_max; })
-    .style("opacity", 1);
-  dot
-    .filter(function(d) { return d.runtime < runtime_min || d.runtime > runtime_max; })
-    .style("opacity", 0);
-	
-	
+	  filter_scatterplot(); 
+	  detail_table.draw();
     }));
-
-	
-	//setup histogram for genre
-	var bin_num = 20;
-	var histogram = d3.layout.histogram()
-				.range([63,216])
-			        .bins(bin_num)
-				.frequency(true);
 				
 	//show the histogram of genre
-	//var genre_his_data = histogram(genre_data); 
 	var genre_his_data = [];
-	var rect_step = 40;
+	var rect_step = width/color.domain().length-3;
 	var heights = [];
 	for(var i = 0;i < color.domain().length; i++){
 		genre_his_data.push({x: color.domain()[i], y: 10*i+100});
@@ -428,19 +381,28 @@ d3.csv("projectData-0.csv", function(error, data) {
 	}
 	var yScale_his = d3.scale.linear()
 						.domain([0,d3.max(heights)])
-						.range([0,height2]);
+						.range([0,height2-10]);
 	
 	//绘制矩形
-	genrehistogram.selectAll("rect")
-			.data(genre_his_data)
-			.enter()
-			.append("rect")
-			.attr("x",function(d,i){
-				return i * rect_step; 
-			})
-			.attr("y", function(d,i){
-				return height2 - yScale_his(d.y);
-			})
+	var histo = genrehistogram.selectAll(".bar")
+    .data(genre_his_data)
+	.enter().append("g")
+    .attr("class", "bar")
+    .attr("transform", function(d, i) { 
+			return "translate(" + i * rect_step + "," + 0 + ")"; });
+	//绘制坐标轴的直线
+	genrehistogram.append("line")
+			.attr("stroke","black")
+			.attr("stroke-width","1px")
+			.attr("x1",0)
+			.attr("y1",height2-10)
+			.attr("x2",genre_his_data.length * rect_step)
+			.attr("y2",height2-10);
+			
+	histo.append("rect")
+			.attr("x", 1)
+			.attr("y", function(d) { 
+			 return height2-10 - yScale_his(d.y); })
 			.attr("width", function(d,i){
 				return rect_step - 2; 
 			})
@@ -448,80 +410,39 @@ d3.csv("projectData-0.csv", function(error, data) {
 				return yScale_his(d.y);
 			})
 			.attr("fill", function(d){return color(d.x);})
-			 .on("mouseover", function(d) {
-				genrename = d.x;
+			/* .on("mouseover", function(d) {
 				dot
-				.filter(function(d) { return d.genre == genrename; })
+				.filter(function(d) { return d.genre == d.x; })
 				.style("opacity", 1);
 				dot
-				.filter(function(d) { return d.genre != genrename; })
+				.filter(function(d) { return d.genre != d.x; })
 				.style("opacity", .3);
 			})
 			.on("mouseout", function(d) {
-				genrename = d.x;
-				dot
-				.style("opacity", 1);
+				filter_scatterplot();
 			;
-			})
+			})*/
 			.on("click", function(d){
 				genrename = d.x;
-				dot
-				.filter(function(d) { return d.genre == genrename; })
-				.style("opacity", 1);
-				dot
-				.filter(function(d) { return d.genre != genrename; })
-				.style("opacity", 0);
+				filter_scatterplot(); 
 		
 	  });
 	
-	//绘制坐标轴的直线
-	genrehistogram.append("line")
-			.attr("stroke","black")
-			.attr("stroke-width","1px")
-			.attr("x1",0)
-			.attr("y1",height2)
-			.attr("x2",data.length * rect_step)
-			.attr("y2",height2);
-	
-	//绘制坐标轴的分隔符直线
-	genrehistogram.selectAll(".linetick")
-			.data(genre_his_data)
-			.enter()
-			.append("line")
-			.attr("stroke","black")
-			.attr("stroke-width","1px")
-			.attr("x1",function(d,i){
-				return i * rect_step + rect_step/2;
-			})
-			.attr("y1",height2)
-			.attr("x2",function(d,i){
-				return i * rect_step + rect_step/2;
-			})
-			.attr("y2",height2 + 5);
-	
 	//绘制文字
-	genrehistogram.selectAll("text")
-			.data(genre_his_data)
-			.enter()
-			.append("text")
+	histo.append("text")
 			.attr("font-size","10px")
-			.attr("x",function(d,i){
-				return i * rect_step; 
-			})
-			.attr("y", function(d,i){
-				return height2;
-			})
+			.attr("x", 0)
+			.attr("y", height2-15)
 			.attr("dx",rect_step/2 - 8)
 			.attr("dy","15px")
 			.text(function(d){
-				return Math.floor(d.x);
+				return d.x;
 			});
-			
 			
 	//show the selected movies in table
 	
 	$(document).ready(function() {
-    var table = $('#movietable').DataTable( {
+    detail_table = $('#movietable').DataTable( {
         data: dataSet,
         columns: [
             { title: "Name" },
@@ -531,12 +452,10 @@ d3.csv("projectData-0.csv", function(error, data) {
             { title: "Release Date" },
             { title: "Genre" }
         ]
-    } );
-	// Event listener to the two range filtering inputs to redraw on input
-     $('#slider, #handle-one, #handle-two').click( function() {
-        table.draw();
 		});
 	});
+	
+	
 });
 
 </script>
