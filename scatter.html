@@ -87,7 +87,7 @@ margin2 = {top: 480, right: 10, bottom: 20, left: 40},
 	
 	//genre filter
 	var genrename = "";
-	var brush_extent = [[new Date(2005, 0, 1), 0],[ new Date(2016, 0, 0), 10]];
+	var brush_extent = [[ new Date(2016, 0, 0), 10],[ new Date(2016, 0, 0), 10]];
 /* 
  * value accessor - returns the value to encode for a given data object.
  * scale - maps value to a visual display encoding, such as a pixel position.
@@ -132,7 +132,7 @@ margin2 = {top: 480, right: 10, bottom: 20, left: 40},
 		runtime_min = 0;
 		runtime_max = 250;
 		genrename = "";
-		brush_extent = [[new Date(2005, 0, 1), 0],[ new Date(2016, 0, 0), 10]];
+		brush_extent = [[ new Date(2016, 0, 0), 10],[ new Date(2016, 0, 0), 10]];
 		
 		scatterplot.call(zoom
 			.x(xScale.domain([new Date(2005, 0, 1), new Date(2016, 0, 0)]))
@@ -167,7 +167,7 @@ margin2 = {top: 480, right: 10, bottom: 20, left: 40},
 								
 								(brush_extent[0][1] > d.rate || d.rate > brush_extent[1][1] ||
 								brush_extent[0][0] > d.ReleaseDate || d.ReleaseDate > brush_extent[1][0]); })
-			.style("opacity", .3);
+			.style("opacity", .5);
 			;
 			dot
 			.filter(function(d) { return d.runtime < runtime_min || d.runtime > runtime_max  
@@ -190,7 +190,7 @@ margin2 = {top: 480, right: 10, bottom: 20, left: 40},
 								d.genre == genrename &&
 								(brush_extent[0][1] > d.rate || d.rate > brush_extent[1][1] ||
 								brush_extent[0][0] > d.ReleaseDate || d.ReleaseDate > brush_extent[1][0]); })
-			.style("opacity", .3);
+			.style("opacity", .5);
 			;
 			dot
 			.filter(function(d) { return d.runtime < runtime_min || d.runtime > runtime_max || 
@@ -205,14 +205,24 @@ margin2 = {top: 480, right: 10, bottom: 20, left: 40},
 			var rate = data[1];
 			var runtime =  data[3];
 			var ReleaseDate = parseDate(data[4]);
-			if ( runtime_min <= runtime && runtime <= runtime_max 
-				&&(brush_extent[0][1] <= rate && rate <= brush_extent[1][1]&&
-				  brush_extent[0][0] <= ReleaseDate && ReleaseDate <= brush_extent[1][0] )
-			)
-			{
-				return true;
+			if(brush_extent[0][1]<10){
+				if ( runtime_min <= runtime && runtime <= runtime_max 
+					&&(brush_extent[0][1] <= rate && rate <= brush_extent[1][1]&&
+					brush_extent[0][0] <= ReleaseDate && ReleaseDate <= brush_extent[1][0] )
+				)
+				{
+					return true;
+				}
+				return false;
 			}
-			return false;
+			else{
+				if ( runtime_min <= runtime && runtime <= runtime_max  )
+				
+				{
+					return true;
+				}
+				return false;
+			}
 		}
 	);
 
@@ -227,7 +237,7 @@ margin2 = {top: 480, right: 10, bottom: 20, left: 40},
   function brushend() {
   if (!d3.event.sourceEvent) return; 
     if (brush.empty()){
-	 brush_extent = [[new Date(2005, 0, 1), 0],[ new Date(2016, 0, 0), 10]];
+	 brush_extent = [[ new Date(2016, 0, 0), 10],[ new Date(2016, 0, 0), 10]];
 	 filter_scatterplot(); 
 	 detail_table.draw();
 	}
@@ -278,7 +288,7 @@ d3.csv("projectData-0.csv", function(error, data) {
 	d.ReleaseDate = parseDate(d.ReleaseDate);
 	d.boxoffice = +d.boxoffice;
 	d.runtime = +d.runtime;
-	dataSet.push( [d.name,  d.rate, d.boxoffice, d.runtime, d.date, d.genre + d.genre1 + d.genre2 + d.genre3 + d.genre4 + d.genre5 + d.genre6]);
+	dataSet.push( [d.name,  d.rate, d.boxoffice, d.runtime, d.date, d.genre + d.genre1 + d.genre2 + d.genre3 + d.genre4 + d.genre5 + d.genre6, d.id]);
     genre_data.push(d.runtime);
   
   });
@@ -333,7 +343,7 @@ d3.csv("projectData-0.csv", function(error, data) {
       .attr("cx", xMap)
       .attr("cy", yMap)	  
       .style("fill", function(d) { return color(cValue(d));}) 
-	  
+	  .style("opacity", .5)
       .on("mouseover", function(d) {
           tooltip.transition()
                .duration(200)
@@ -416,7 +426,7 @@ d3.csv("projectData-0.csv", function(error, data) {
 				.style("opacity", 1);
 				dot
 				.filter(function(d) { return d.genre != d.x; })
-				.style("opacity", .3);
+				.style("opacity", .5);
 			})
 			.on("mouseout", function(d) {
 				filter_scatterplot();
@@ -452,7 +462,14 @@ d3.csv("projectData-0.csv", function(error, data) {
             { title: "Release Date" },
             { title: "Genre" }
         ]
-		});
+	});
+	  $('#movietable')
+        .on( 'mouseenter', 'td', function () {
+            var colIdx = detail_table.cell(this).index().row;
+			console.log(colIdx);
+            //$( detail_table.column( colIdx ).nodes() ).addClass( 'highlight' );
+        } );
+		
 	});
 	
 	
