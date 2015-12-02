@@ -87,7 +87,7 @@ margin2 = {top: 480, right: 10, bottom: 20, left: 40},
 	
 	//genre filter
 	var genrename = "";
-	
+	var brush_extent = [[new Date(2005, 0, 1), 0],[ new Date(2012, 0, 0), 10]];
 /* 
  * value accessor - returns the value to encode for a given data object.
  * scale - maps value to a visual display encoding, such as a pixel position.
@@ -110,13 +110,9 @@ margin2 = {top: 480, right: 10, bottom: 20, left: 40},
     // setup fill color
 	var cValue = function(d) { return d.genre;},
     color = d3.scale.category10();
-
 	
 	var dot;
 
-
-				
-				
     var zoom = d3.behavior.zoom()
     .x(xScale)
     .y(yScale)
@@ -127,71 +123,64 @@ margin2 = {top: 480, right: 10, bottom: 20, left: 40},
 	var brush = d3.svg.brush()
       .x(xScale)
       .y(yScale)
-	  
-  //    .on("brushstart", brushstart)
       .on("brush", brushmove)
       .on("brushend", brushend);
 
+	d3.select("button").on("click", reset);
+	function reset() {
+	scatterplot.call(zoom
+		.x(xScale.domain([new Date(2005, 0, 1), new Date(2012, 0, 0)]))
+		.y(yScale.domain([0, 10]))
+		.event);
+	dot.style("opacity", 1);
+	}
+	
     function zoomed(){
       svg.select("g.x.axis").call(xAxis);
       svg.select("g.y.axis").call(yAxis);
-    scatterplot.attr("transform", "translate(" + d3.event.translate + ")scale(" + d3.event.scale + ")");
+      scatterplot.attr("transform", "translate(" + d3.event.translate + ")scale(" + d3.event.scale + ")");
     }
 	
-	function reset() {
-	
-	
-	scatterplot.call(zoom
-		//.x(x.domain(d3.extent(data, function(d) { return d.ReleaseDate; })))
-		//.y(y.domain([0,d3.max(data,function(d){return d.rate})]))
-		.event);
-	}
+   function filter_scatterplot(){
+		dot
+		.filter(function(d) { return d.runtime >= runtime_min && d.runtime <= runtime_max &&
+							d.genre == genrename &&
+							(brush_extent[0][1] <= d.rate && d.rate <= brush_extent[1][1]&&
+							brush_extent[0][0] <= d.ReleaseDate && d.ReleaseDate <= brush_extent[1][0] )
+							
+							; })
+		.style("opacity", 1)
+		;
+		dot
+		.filter(function(d) { return d.runtime >= runtime_min && d.runtime <= runtime_max && 
+							d.genre == genrename &&
+							(brush_extent[0][1] > d.rate || d.rate > brush_extent[1][1] ||
+							brush_extent[0][0] > d.ReleaseDate || d.ReleaseDate > brush_extent[1][0]); })
+		.style("opacity", .3);
+		;
+		dot
+		.filter(function(d) { return d.runtime < runtime_min || d.runtime > runtime_max || 
+									d.genre != genrename
+								; })
+		.style("opacity", 0);
 
-  
-	
-  	//brush
-	// Clear the previously-active brush, if any.
- /* function brushstart(p) {
-    if (brushCell !== this) {
-      d3.select(brushCell).call(brush.clear());
-      x.domain(domainByTrait[p.x]);
-      y.domain(domainByTrait[p.y]);
-      brushCell = this;
-    }
-  }
-*/
+   }
+
   // Highlight the selected circles.
   function brushmove(d) {
-   var e = brush.extent();
-    dot
-    .filter(function(d) { return e[0][1] <= d.rate && d.rate <= e[1][1]&&
-							e[0][0] <= d.ReleaseDate || d.ReleaseDate <= e[1][0] ; })
-   // .attr("display", "inline")
-	.style("opacity", 1)
-	;
-   dot
-    .filter(function(d) { return e[0][1] > d.rate || d.rate > e[1][1] ||
-							e[0][0] > d.ReleaseDate || d.ReleaseDate > e[1][0]; })
-    .style("opacity", .3);
-	//.attr("display", "none")
-	;
-   
-  /*  dot.classed("hidden", function(d) {
-      return e[0][0] > d.year || d.year > e[1][0]
-          || e[0][1] > d.rate || d.rate > e[1][1];
-    });*/
+   brush_extent = brush.extent();
+   filter_scatterplot(); 
   }
 
   // If the brush is empty, select all circles.
   function brushend() {
   if (!d3.event.sourceEvent) return; 
     if (brush.empty()){
-	 dot
-	.style("opacity", 1)
-	;
+	 brush_extent = [[new Date(2005, 0, 1), 0],[ new Date(2012, 0, 0), 10]];
+	 filter_scatterplot(); 
 	}
   }
-	d3.select("button").on("click", reset);
+	
 	
 	// add the graph canvas to the body of the webpage
 	var svg = d3.select("#scatterplot").append("svg")
@@ -219,7 +208,6 @@ margin2 = {top: 480, right: 10, bottom: 20, left: 40},
     .attr("width", width)
     .attr("height", height)
     .style("fill", "none")
-	// .call(zoom);
     //.style("pointer-events", "all");
 
 	// add the tooltip area to the webpage
@@ -229,14 +217,11 @@ margin2 = {top: 480, right: 10, bottom: 20, left: 40},
 
 	$.fn.dataTable.ext.search.push(
 		function( settings, data, dataIndex ) {
-			var min = runtime_min;
-			var max = runtime_max;
-			var runtime = parseFloat( data[3] ) || 0; 
-			
-			if ( ( isNaN( min ) && isNaN( max ) ) ||
-				 ( isNaN( min ) && runtime <= max ) ||
-				 ( min <= runtime   && isNaN( max ) ) ||
-				 ( min <= runtime   && runtime <= max ) )
+			var runtime =  data[3] ; 
+			if ( ( isNaN( runtime_min ) && isNaN( runtime_max ) ) ||
+				 ( isNaN( runtime_min ) && runtime <= runtime_max ) ||
+				 ( runtime_min <= runtime   && isNaN( runtime_max ) ) ||
+				 ( runtime_min <= runtime   && runtime <= runtime_max ) )
 			{
 				return true;
 			}
@@ -263,8 +248,7 @@ d3.csv("projectData-0.csv", function(error, data) {
 
 
   // don't want dots overlapping axis, so add in buffer to data domain
- // xScale.domain(d3.extent(data, function(d){return d.ReleaseDate;}));
- // yScale.domain([0,d3.max(data,function(d){return d.rate})]);
+
   //xScale.domain([d3.min(data, xValue)-1, d3.max(data, xValue)+1]);
   //yScale.domain([d3.min(data, yValue)-1, d3.max(data, yValue)+1]);
 	xScale.domain([new Date(2005, 0, 1), new Date(2012, 0, 0)]);
@@ -377,20 +361,14 @@ d3.csv("projectData-0.csv", function(error, data) {
       .style("text-anchor", "end")
       .text(function(d) { return d;})
 	*/  
-	   d3.select('#slider').call(d3.slider().axis(true).value( [ 0, 250 ] ).on("slide", function(evt, value) {
+	  d3.select('#slider').call(d3.slider().axis(true).value( [ 0, 250 ] ).on("slide", function(evt, value) {
       d3.select('#slidertextmin').text(value[ 0 ]);
       d3.select('#slidertextmax').text(value[ 1 ]);
 	  runtime_min = +value[0];
 	  runtime_max = +value[1];
 	  
-  dot
-    .filter(function(d) { return d.runtime >= runtime_min && d.runtime <= runtime_max; })
-    .style("opacity", 1);
-  dot
-    .filter(function(d) { return d.runtime < runtime_min || d.runtime > runtime_max; })
-    .style("opacity", 0);
-	
-	
+	  filter_scatterplot(); 
+
     }));
 
 	
@@ -449,12 +427,7 @@ d3.csv("projectData-0.csv", function(error, data) {
 			})
 			.on("click", function(d){
 				genrename = d.x;
-				dot
-				.filter(function(d) { return d.genre == genrename; })
-				.style("opacity", 1);
-				dot
-				.filter(function(d) { return d.genre != genrename; })
-				.style("opacity", 0);
+				filter_scatterplot(); 
 		
 	  });
 	
@@ -521,6 +494,8 @@ d3.csv("projectData-0.csv", function(error, data) {
         table.draw();
 		});
 	});
+	
+	
 });
 
 </script>
