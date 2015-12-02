@@ -99,7 +99,7 @@ margin2 = {top: 480, right: 10, bottom: 20, left: 40},
 	var xValue = function(d) { return d.ReleaseDate;}, // data -> value
     xScale = d3.time.scale().range([0,width-100]);
     xMap = function(d) { return xScale(xValue(d));}, // data -> display
-    xAxis = d3.svg.axis().scale(xScale).orient("bottom").ticks(10);
+    xAxis = d3.svg.axis().scale(xScale).orient("bottom").tickPadding(6);
 
 	// setup y
 	var yValue = function(d) { return d.rate;}, // data -> value
@@ -120,14 +120,9 @@ margin2 = {top: 480, right: 10, bottom: 20, left: 40},
     var zoom = d3.behavior.zoom()
     .x(xScale)
     .y(yScale)
-    .scaleExtent([1,20])
+    .scaleExtent([1,10])
     .on("zoom",zoomed);
 
-    var drag = d3.behavior.drag()
-    .origin(function(d) { return d; })
-    .on("dragstart", dragstarted)
-    .on("drag", dragged)
-    .on("dragend", dragended);
 
 	var brush = d3.svg.brush()
       .x(xScale)
@@ -138,32 +133,21 @@ margin2 = {top: 480, right: 10, bottom: 20, left: 40},
       .on("brushend", brushend);
 
     function zoomed(){
-      scatterplot.select(".x.axis").call(xAxis);
-      scatterplot.select(".y.axis").call(yAxis);
+      svg.select("g.x.axis").call(xAxis);
+      svg.select("g.y.axis").call(yAxis);
     scatterplot.attr("transform", "translate(" + d3.event.translate + ")scale(" + d3.event.scale + ")");
     }
 	
 	function reset() {
 	
 	
-	/*scatterplot.call(zoom
-		.x(x.domain(d3.extent(data, function(d) { return d.ReleaseDate; })))
-		.y(y.domain([0,d3.max(data,function(d){return d.rate})]))
-		.event);*/
+	scatterplot.call(zoom
+		//.x(x.domain(d3.extent(data, function(d) { return d.ReleaseDate; })))
+		//.y(y.domain([0,d3.max(data,function(d){return d.rate})]))
+		.event);
 	}
 
-    function dragstarted(d) {
-    d3.event.sourceEvent.stopPropagation();
-    d3.select(this).classed("dragging", true);
-    }
-
-    function dragged(d) {
-    d3.select(this).attr("cx", d.x = d3.event.x).attr("cy", d.y = d3.event.y);
-    }
-
-    function dragended(d) {
-    d3.select(this).classed("dragging", false);
-    }
+  
 	
   	//brush
 	// Clear the previously-active brush, if any.
@@ -220,7 +204,7 @@ margin2 = {top: 480, right: 10, bottom: 20, left: 40},
 	var scatterplot = svg.append("g")
     .attr("class", "scatterplot")
     .attr("transform", "translate(" + margin.left + "," + margin.top + ")")
-	//.call(zoom)
+	.call(zoom)
 	;
 	
 	var genrehistogram = svg.append("g")
@@ -239,7 +223,7 @@ margin2 = {top: 480, right: 10, bottom: 20, left: 40},
     //.style("pointer-events", "all");
 
 	// add the tooltip area to the webpage
-	var tooltip = d3.select("#scatterplot").append("div")
+	var tooltip = d3.select("#scatterplot").append("svg")
     .attr("class", "tooltip")
     .style("opacity", 0);
 
@@ -279,13 +263,15 @@ d3.csv("projectData-0.csv", function(error, data) {
 
 
   // don't want dots overlapping axis, so add in buffer to data domain
-  xScale.domain(d3.extent(data, function(d){return d.ReleaseDate;}));
-  yScale.domain([0,d3.max(data,function(d){return d.rate})]);
+ // xScale.domain(d3.extent(data, function(d){return d.ReleaseDate;}));
+ // yScale.domain([0,d3.max(data,function(d){return d.rate})]);
   //xScale.domain([d3.min(data, xValue)-1, d3.max(data, xValue)+1]);
   //yScale.domain([d3.min(data, yValue)-1, d3.max(data, yValue)+1]);
-
+	xScale.domain([new Date(2005, 0, 1), new Date(2012, 0, 0)]);
+    yScale.domain([0, d3.max(data, function(d) { return d.rate; })]);
+    zoom.x(xScale);
   // x-axis
-  scatterplot.append("g")
+  svg.append("g")
       .attr("class", "x axis")
       .attr("transform", "translate(0," + height + ")")
       .call(xAxis)
@@ -297,7 +283,7 @@ d3.csv("projectData-0.csv", function(error, data) {
       .text("Release Date");
 
   // y-axis
-  scatterplot.append("g")
+  svg.append("g")
       .attr("class", "y axis")
       .call(yAxis)
     .append("text")
@@ -354,12 +340,10 @@ d3.csv("projectData-0.csv", function(error, data) {
 			movie_object.runtime = d.runtime;
 			movie_object.imdb = d.imdb;
 			window.showModalDialog("SingleMoviePage.html", movie_object, "dialogHeight:500px; dialogLeft:500px;"); 
-	})
-   //    .call(drag)
-   ;
+	});
 
   // draw legend
-  var legend = scatterplot.selectAll(".legend")
+ /* var legend = scatterplot.selectAll(".legend")
       .data(color.domain())
     .enter().append("g")
       .attr("class", "legend")
@@ -392,7 +376,7 @@ d3.csv("projectData-0.csv", function(error, data) {
 	  .attr("id", function(d){ return d;})
       .style("text-anchor", "end")
       .text(function(d) { return d;})
-	  
+	*/  
 	   d3.select('#slider').call(d3.slider().axis(true).value( [ 0, 250 ] ).on("slide", function(evt, value) {
       d3.select('#slidertextmin').text(value[ 0 ]);
       d3.select('#slidertextmax').text(value[ 1 ]);
